@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHCP & TFTP Server Control</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>DHCP & TFTP Server Control</h1>
+        <form id="server-form">
+            <div class="form-group">
+                <label for="server-ip">Server IP:</label>
+                <input type="text" id="server-ip" name="server_ip" value="{{ server_ip }}" required>
+            </div>
+            <div class="form-group">
+                <label for="client-ip">Client IP:</label>
+                <input type="text" id="client-ip" name="client_ip" value="{{ client_ip }}" required>
+            </div>
+            <div class="form-group">
+                <label for="config-filename">Config File Name:</label>
+                <select id="config-filename" name="config_filename" required>
+                    <!-- Options will be populated dynamically -->
+                </select>
+            </div>
+            <div class="button-group">
+                <button type="button" id="start-servers" class="btn btn-primary">Start Servers</button>
+                <button type="button" id="stop-servers" class="btn btn-secondary">Stop Servers</button>
+            </div>
+        </form>
+        <div id="status" class="status"></div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        document.getElementById('start-btn').addEventListener('click', function() {
+            fetch('/start_servers', {
+                method: 'POST',
+                body: new FormData(document.getElementById('server-form'))
+            })
+            .then(response => response.json())
+            .then(data => {
+                const statusElement = document.getElementById('status');
+                if (data.status === 'error') {
+                    statusElement.textContent = 'Error: ' + data.message;
+                    statusElement.classList.add('error');
+                } else {
+                    statusElement.textContent = data.message;
+                    statusElement.classList.remove('error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('status').textContent = 'An error occurred. Please try again.';
+                document.getElementById('status').classList.add('error');
+            });
+        });
+
+        document.getElementById('stop-btn').addEventListener('click', function() {
+            fetch('/stop_servers', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('status').textContent = data.message;
+                document.getElementById('status').classList.remove('error');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('status').textContent = 'An error occurred. Please try again.';
+                document.getElementById('status').classList.add('error');
+            });
+        });
+    </script>
+</body>
+</html>

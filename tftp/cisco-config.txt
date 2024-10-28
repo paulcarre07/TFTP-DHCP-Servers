@@ -1,0 +1,208 @@
+service timestamps debug datetime msec
+service timestamps log datetime msec
+service password-encryption
+service call-home
+platform qfp utilization monitor load 80
+platform punt-keepalive disable-kernel-core
+platform hardware throughput crypto 50000
+!
+hostname Routeur_Cisco_1121_-_4P
+!
+!
+logging buffered 8192 informational
+!
+aaa new-model
+!
+!
+aaa authentication login default group radius local enable
+aaa authentication login CONSOLE local
+aaa authentication ppp default group radius
+aaa authorization exec default group radius local
+aaa authorization exec default radius local
+!
+aaa common-criteria policy iiot_policy
+    min-length 10
+    max-length 127
+    numeric-count 1
+    upper-case 1
+    lower-case 1
+    char-changes 4
+!
+!
+!
+!
+!
+!
+aaa session-id common
+!
+!
+!
+!
+!
+!
+!
+ip name-server 178.23.154.5
+ip name-server 178.23.154.6
+no ip domain lookup
+ip domain name ipline.local
+!
+!
+!
+username ipline privilege 15 secret ipline
+enable secret ipline
+!
+no cdp run
+!
+track 1 ip route 100.67.173.232 255.255.255.248 reachability
+!
+!
+!
+!
+!
+!
+interface GigabitEthernet0/0/0
+    description * P208244 *
+    ip address 100.67.173.15 255.255.255.254
+    negotiation auto
+    no shutdown
+!
+ip radius source-interface GigabitEthernet0/0/0
+!
+interface GigabitEthernet0/1/0
+    description * ACCESS *
+    switchport mode access
+    switchport access vlan 1
+    no shutdown
+!
+interface GigabitEthernet0/1/1
+    description * TRUNK *
+    switchport mode trunk
+    switchport trunk allowed vlan 1,10
+    no shutdown
+!
+interface GigabitEthernet0/1/2
+    description * TRUNK *
+    switchport mode trunk
+    switchport trunk allowed vlan 10
+    no shutdown
+!
+interface GigabitEthernet0/1/3
+    description * TRUNK *
+    switchport mode trunk
+    switchport trunk allowed vlan 1
+    no shutdown
+!
+interface Vlan 1
+    ip address 192.168.28.253 255.255.255.0
+    standby 1 ip 192.168.28.254
+    standby 1 priority 110
+    standby 1 preempt
+    standby 1 track 1 decrement 40
+    no shutdown
+!
+router bgp 65028
+    bgp router-id 100.67.173.15
+    bgp log-neighbor-changes
+    neighbor APAJH_38 peer-group
+    neighbor APAJH_38 update-source GigabitEthernet0/0/0
+    neighbor APAJH_38 timers 5 20 20
+    neighbor 100.67.173.14 remote-as 65535
+    neighbor 100.67.173.14 remote-as APAJH_38
+    !
+    address-family ipv4
+        network 100.67.173.14 mask 255.255.255.254
+        network 192.168.28.0
+        neighbor APAJH_38 send-community
+        neighbor APAJH_38 soft-reconfiguration inbound
+        neighbor APAJH_38 prefix-list LAN out
+        neighbor 100.67.173.14 activate
+    exit-address-family
+!
+ip http authentication local
+no ip http secure-server
+ip ssh time-out 60
+ip ssh authentication-retries 2
+ip ssh version 2
+!
+!
+!
+!
+ip prefix-list LAN seq 1 permit 100.67.173.14/31
+ip prefix-list LAN seq 2 permit 192.168.28.0/24
+logging trap debugging
+logging host 100.99.99.225
+access-list 98 permit 169.254.0.0 0.0.255.255
+access-list 98 permit 100.64.0.0 0.63.255.255
+access-list 98 permit 10.0.0.0 0.255.255.255
+access-list 98 permit 172.16.0.0 0.15.255.255
+access-list 98 permit 192.168.0.0 0.0.255.255
+access-list 98 deny   any log
+access-list 98 remark IPLine Administration
+!
+snmp-server view noRouteTable enterprises included
+snmp-server view noRouteTable system included
+snmp-server view noRouteTable interfaces included
+snmp-server view noRouteTable ifMIB included
+snmp-server view noRouteTable ip.3 included
+snmp-server community  view noRouteTable RO 98
+snmp-server location APAJH_38
+snmp-server contact support.entreprises@dstny.fr
+!
+!
+!
+!
+radius server APAJH_38 
+address ipv4 100.99.99.225 auth-port 1812 acct-port 1813
+timeout 10
+key mykey123
+!
+!
+control-plane
+!
+banner login ^CC
+*********************************
+IPLINE ADMINISTRATION
+For further information
+Mail: support.entreprises@dstny.fr
+Phone: +334 27 70 90 00
+*********************************
+^C
+!
+line con 0
+    exec-timeout 0 0
+    login authentication CONSOLE
+    stopbits 1
+line vty 0 4
+    access-class 98 in vrf-also
+    privilege level 15
+    transport input ssh
+!
+line vty 5 15
+    access-class 98 in vrf-also
+    privilege level 15
+    transport input ssh
+    escape-character 3
+!
+no ip domain lookup
+ip domain name ipline.local
+!
+archive
+    log config
+        logging enable
+        notify syslog contenttype plaintext
+        hidekeys
+!
+!
+no login on-success log
+!
+!
+!
+crypto key generate rsa modulus 2048
+!
+ntp server 100.99.99.225
+ntp access-group peer 99
+!
+!
+!
+!
+end
